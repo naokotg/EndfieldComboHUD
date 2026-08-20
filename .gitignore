@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# PyInstaller build output
+build/
+dist/
+
+# Local recordings / private samples (never commit large videos)
+samples/local/
+
+# Temp / OS
+*.log
+.DS_Store
+Thumbs.db
