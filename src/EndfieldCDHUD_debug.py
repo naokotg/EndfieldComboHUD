@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-终末地连携 CD HUD v2.3
+EndfieldComboHUD v1.01
 
+《明日方舟：终末地》连携技状态的外部 HUD。
 Windows / 纯外部屏幕识别 / 无第三方依赖
 - 不读游戏内存
 - 不注入游戏进程
 - Win32 GDI 截取左下 HUD 小区域
-- 1~4 槽独立检测
-- READY 瞬间：数字圆圈闪烁 + 提示音
-- READY 持续：小型状态 HUD 常亮
-- v2.1-alpha5：实验性读取白条横向进度并映射到圆形 HUD
-- v2.1-alpha5：首次完整 CD 学习后显示预计剩余秒数
-- v2.1-alpha5：死亡需同时满足低/无 HP + 固定死亡头像图标
-- v1.1：换人 CD 暗化不再重新触发 READY 提示
+- 1~4 位干员独立检测
+- 默认样式（实心圆·固定格式）与角色头像样式
+- FF14 式半透明 CD 遮罩（头像样式）
+- 头像抓取：进入角色界面 → 右下角切换视图 → 点击抓取
 """
 
 import sys
@@ -336,8 +334,8 @@ AVATAR_ALIGN_DEFAULT = [
     (541, 177, 50),
 ]
 
-INPUT_LAYOUT_KEYBOARD = "键盘鼠标（v2.3）"
-INPUT_LAYOUT_CONTROLLER = "手柄（v2.3 Beta）"
+INPUT_LAYOUT_KEYBOARD = "键盘鼠标"
+INPUT_LAYOUT_CONTROLLER = "手柄（Beta）"
 INPUT_LAYOUTS = (INPUT_LAYOUT_KEYBOARD, INPUT_LAYOUT_CONTROLLER)
 LEGACY_KEYBOARD_LAYOUTS = (
     "键盘鼠标（v2.2）",
@@ -2639,7 +2637,7 @@ class TrayIcon:
         nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP
         nid.uCallbackMessage = WM_TRAYICON
         nid.hIcon = hicon
-        nid.szTip = "终末地连携 CD HUD v2.3"
+        nid.szTip = "EndfieldComboHUD v1.01"
         self._nid = nid
 
         shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(nid))
@@ -2695,13 +2693,13 @@ class TrayIcon:
 class App:
     SETTINGS_DIR = os.path.join(
         os.environ.get("APPDATA", os.path.expanduser("~")),
-        "EndfieldCDAlert_v21_alpha5"
+        "EndfieldComboHUD"
     )
     SETTINGS_PATH = os.path.join(SETTINGS_DIR, "settings.json")
 
     def __init__(self, root):
         self.root = root
-        self.root.title("终末地连携 CD HUD v2.3")
+        self.root.title("EndfieldComboHUD v1.01")
         self.root.geometry("820x780")
         self.root.minsize(780, 780)
 
@@ -2758,24 +2756,8 @@ class App:
             "hud_scale": 1.0,
             "hud_spacing": 1.0,
             "marker_opacity": 1.0,
-            "background_opacity": 0.62,
-            # Keep this legacy key so rolling back to 1.x does not produce
-            # a surprising fully opaque window.
-            "hud_opacity": 0.62,
-            "show_numbers": False,
-            "unavailable_mode": "暗色显示",
-            "slot_color_names": list(DEFAULT_SLOT_COLOR_NAMES),
-            "slot_colors": [
-                COLOR_PRESETS["蓝"],
-                COLOR_PRESETS["青"],
-                COLOR_PRESETS["紫"],
-                COLOR_PRESETS["橙"],
-            ],
-            "sound": False,
-            "flash": True,
             "show_countdown": True,
-            "pitch_by_slot": True,
-            "silent_first": True,
+            "unavailable_mode": "暗色显示",
             "show_in_combat_only": True,
             "hide_hud": False,
             "hud_style": HUD_STYLE_CIRCLE,
@@ -2811,17 +2793,8 @@ class App:
                 "hud_scale": float(self.scale_var.get()),
                 "hud_spacing": float(self.spacing_var.get()),
                 "marker_opacity": float(self.marker_opacity_var.get()),
-                "background_opacity": float(self.background_opacity_var.get()),
-                "hud_opacity": float(self.background_opacity_var.get()),
-                "show_numbers": bool(self.show_numbers_var.get()),
-                "unavailable_mode": self.unavailable_mode_var.get(),
-                "slot_color_names": list(self.slot_color_names),
-                "slot_colors": list(self.slot_colors),
-                "sound": bool(self.sound_var.get()),
-                "flash": bool(self.flash_var.get()),
                 "show_countdown": bool(self.show_countdown_var.get()),
-                "pitch_by_slot": bool(self.pitch_by_slot_var.get()),
-                "silent_first": bool(self.silent_first_var.get()),
+                "unavailable_mode": self.unavailable_mode_var.get(),
                 "show_in_combat_only": bool(self.show_in_combat_only_var.get()),
                 "hide_hud": bool(self.hide_hud_var.get()),
                 "hud_style": self._hud_style_value(),
@@ -2852,7 +2825,7 @@ class App:
     def _ui(self):
         style = ttk.Style()
         try:
-            style.configure("Title.TLabel", font=("Microsoft YaHei UI", 16, "bold"))
+            style.configure("Title.TLabel", font=("Microsoft YaHei UI", 17, "bold"))
             style.configure(
                 "Section.TLabelframe.Label",
                 font=("Microsoft YaHei UI", 10, "bold")
@@ -2862,20 +2835,20 @@ class App:
 
         ttk.Label(
             self.root,
-            text="终末地连携 CD HUD v2.3",
+            text="EndfieldComboHUD v1.01",
             style="Title.TLabel",
         ).pack(anchor="w", padx=18, pady=(16, 2))
 
         ttk.Label(
             self.root,
-            text="键鼠正式支持；手柄 Beta 为实验性画面识别。",
+            text="《明日方舟：终末地》连携技 HUD · 纯屏幕识别 · 不读内存 · 不注入进程",
+            foreground="#555555",
         ).pack(anchor="w", padx=18, pady=(0, 10))
 
         footer = ttk.Frame(self.root)
         footer.pack(side="bottom", fill="x", padx=18, pady=(8, 14))
 
-        # 打开程序即自动开始检测，不再提供开始/暂停按钮；
-        # 暂停/恢复通过托盘菜单使用。
+        # 打开程序即自动开始检测；暂停/恢复通过托盘菜单使用。
         ttk.Button(
             footer, text="隐藏到托盘", command=self.hide_to_tray
         ).pack(side="left")
@@ -2900,32 +2873,40 @@ class App:
         notebook = ttk.Notebook(self.root)
         notebook.pack(fill="both", expand=True, padx=18, pady=(0, 8))
 
-        monitor_tab = ttk.Frame(notebook, padding=12)
-        hud_tab = ttk.Frame(notebook, padding=12)
-        notify_tab = ttk.Frame(notebook, padding=12)
-        advanced_tab = ttk.Frame(notebook, padding=12)
-        notebook.add(monitor_tab, text="监测")
-        notebook.add(hud_tab, text="HUD")
-        notebook.add(notify_tab, text="提示")
-        notebook.add(advanced_tab, text="高级")
+        ops_tab = ttk.Frame(notebook, padding=12)
+        style_tab = ttk.Frame(notebook, padding=12)
+        looks_tab = ttk.Frame(notebook, padding=12)
+        notebook.add(ops_tab, text="干员")
+        notebook.add(style_tab, text="标识")
+        notebook.add(looks_tab, text="外观")
 
-        # -------- Monitor tab --------
-        ttk.Label(monitor_tab, text="游戏显示器").grid(
-            row=0, column=0, padx=(0, 10), pady=10, sticky="w"
+        # ================= 干员页 =================
+        ops_frame = ttk.LabelFrame(ops_tab, text="监测配置", padding=10)
+        ops_frame.grid(row=0, column=0, sticky="ew", padx=4, pady=(0, 10))
+        ops_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(ops_frame, text="分辨率").grid(
+            row=0, column=0, padx=(0, 12), pady=6, sticky="w"
         )
+        # 分辨率选择：由检测到的显示器去重生成，按面积倒序。
+        self.mon_options = []
+        seen = set()
+        for m in sorted(self.monitors, key=lambda x: -x["width"] * x["height"]):
+            key = (m["width"], m["height"])
+            if key in seen:
+                continue
+            seen.add(key)
+            self.mon_options.append((f"{m['width']}×{m['height']}", m))
         self.mon_var = tk.StringVar()
         self.mon_box = ttk.Combobox(
-            monitor_tab, textvariable=self.mon_var, state="readonly", width=50
+            ops_frame, textvariable=self.mon_var, state="readonly", width=16
         )
-        self.mon_box["values"] = [
-            f"显示器 {i+1}: {m['width']}×{m['height']} @ ({m['left']},{m['top']})"
-            for i, m in enumerate(self.monitors)
-        ]
-        self.mon_box.grid(row=0, column=1, columnspan=5, pady=10, sticky="ew")
+        self.mon_box["values"] = [label for label, _ in self.mon_options]
+        self.mon_box.grid(row=0, column=1, pady=6, sticky="w")
         self.mon_box.bind("<<ComboboxSelected>>", lambda e: self._settings_changed())
 
-        ttk.Label(monitor_tab, text="监测槽位").grid(
-            row=1, column=0, padx=(0, 10), pady=10, sticky="w"
+        ttk.Label(ops_frame, text="干员显示").grid(
+            row=1, column=0, padx=(0, 12), pady=6, sticky="w"
         )
         self.slot_vars = []
         self.slot_checks = []
@@ -2933,278 +2914,201 @@ class App:
             v = tk.BooleanVar(value=True)
             self.slot_vars.append(v)
             cb = ttk.Checkbutton(
-                monitor_tab,
-                text=str(i + 1),
+                ops_frame,
+                text=f"{i + 1}号位",
                 variable=v,
                 command=self._settings_changed,
             )
             self.slot_checks.append(cb)
-            # 固定小间隔紧凑排列
-            cb.grid(row=1, column=i + 1, padx=4, pady=10, sticky="w")
-        monitor_tab.columnconfigure(1, weight=1)
+            cb.grid(row=1, column=i + 1, padx=6, pady=6, sticky="w")
 
-        ttk.Label(monitor_tab, text="游戏操作布局").grid(
-            row=2, column=0, padx=(0, 10), pady=10, sticky="w"
+        ttk.Label(ops_frame, text="操作布局").grid(
+            row=2, column=0, padx=(0, 12), pady=6, sticky="w"
         )
         self.input_layout_var = tk.StringVar(value=INPUT_LAYOUT_KEYBOARD)
         self.input_layout_box = ttk.Combobox(
-            monitor_tab,
+            ops_frame,
             textvariable=self.input_layout_var,
             state="readonly",
             values=INPUT_LAYOUTS,
-            width=24,
+            width=16,
         )
-        self.input_layout_box.grid(
-            row=2, column=1, columnspan=3, pady=10, sticky="w"
-        )
+        self.input_layout_box.grid(row=2, column=1, pady=6, sticky="w")
         self.input_layout_box.bind(
             "<<ComboboxSelected>>", lambda e: self._settings_changed()
         )
+        ttk.Label(
+            ops_frame,
+            text="手柄（Beta）目前仅以 3840×2160 实测；复杂特效下可能误判。",
+            foreground="#888888",
+        ).grid(row=3, column=1, columnspan=4, pady=(2, 4), sticky="w")
+
+        view_frame = ttk.LabelFrame(ops_tab, text="显示", padding=10)
+        view_frame.grid(row=1, column=0, sticky="ew", padx=4)
+        view_frame.columnconfigure(1, weight=1)
+
+        self.show_in_combat_only_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            view_frame,
+            text="仅在战斗中显示 HUD",
+            variable=self.show_in_combat_only_var,
+            command=self._settings_changed,
+        ).grid(row=0, column=0, pady=4, sticky="w")
+        ttk.Label(
+            view_frame,
+            text="取消勾选后，只要游戏在前台就始终显示 HUD。",
+            foreground="#888888",
+        ).grid(row=0, column=1, padx=(10, 0), pady=4, sticky="w")
+
+        self.hide_hud_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            view_frame,
+            text="隐藏 HUD",
+            variable=self.hide_hud_var,
+            command=self._settings_changed,
+        ).grid(row=1, column=0, pady=4, sticky="w")
+        ttk.Label(
+            view_frame,
+            text="保留检测，仅隐藏悬浮窗。",
+            foreground="#888888",
+        ).grid(row=1, column=1, padx=(10, 0), pady=4, sticky="w")
 
         ttk.Label(
-            monitor_tab,
-            text="手柄 Beta 目前仅以 3840×2160 实测；复杂特效下可能误判。",
-        ).grid(row=3, column=0, columnspan=6, pady=(14, 0), sticky="w")
+            ops_tab,
+            text="打开程序即自动开始监测；暂停/恢复通过系统托盘菜单。",
+            foreground="#888888",
+        ).grid(row=2, column=0, pady=(14, 0), sticky="w")
 
-        # -------- HUD tab --------
+        # ================= 标识页 =================
         # 位置不再提供下拉/调整按钮：直接用鼠标拖拽 HUD 定位（自定义）。
         self.position_var = tk.StringVar(value="中央偏下")
-
-        # 顶部：预览 + 样式选择
-        top = ttk.Frame(hud_tab)
-        top.grid(row=0, column=0, columnspan=4, sticky="ew", padx=8, pady=(4, 6))
-        ttk.Button(top, text="预览 HUD", command=self.preview_hud).pack(
-            side="left", padx=(0, 16)
-        )
-        ttk.Label(top, text="HUD 标识样式：").pack(side="left")
+        # 内部样式状态：默认实心圆；点击“抓取头像”后自动切换为角色头像。
         self.hud_style_var = tk.StringVar(value="实心圆形")
-        self.hud_style_box = ttk.Combobox(
-            top, textvariable=self.hud_style_var, state="readonly",
-            values=list(HUD_STYLE_NAMES.keys()), width=12,
-        )
-        self.hud_style_box.pack(side="left", padx=(6, 0))
-        self.hud_style_box.bind(
-            "<<ComboboxSelected>>", lambda e: self._hud_style_changed()
-        )
+        # 默认样式（实心圆）为固定格式：固定配色、无高亮、始终显示干员编号。
+        self.slot_colors = [
+            COLOR_PRESETS[name] for name in DEFAULT_SLOT_COLOR_NAMES
+        ]
 
-        self.show_countdown_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(
-            top, text="CD 显示预计秒数", variable=self.show_countdown_var,
-            command=self._show_countdown_changed,
-        ).pack(side="left", padx=(18, 0))
-
-        # 两个板块左右排布
-        boards = ttk.Frame(hud_tab)
-        boards.grid(row=1, column=0, columnspan=4, sticky="ew",
-                    padx=8, pady=(0, 8))
-        boards.columnconfigure(0, weight=1)
-        boards.columnconfigure(1, weight=1)
-
-        # -------- 板块一：实心圆形样式 --------
-        circle_frame = ttk.LabelFrame(
-            boards, text="实心圆形样式（原动画）", padding=8,
-        )
-        circle_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 4))
-        circle_frame.columnconfigure(1, weight=1)
-
-        ttk.Label(circle_frame, text="槽位颜色").grid(
-            row=0, column=0, padx=(0, 6), pady=3, sticky="w"
-        )
-        self.slot_color_names = list(DEFAULT_SLOT_COLOR_NAMES)
-        self.slot_colors = [COLOR_PRESETS[name] for name in self.slot_color_names]
-        self.color_vars = []
-        self.color_boxes = []
-        color_frame = ttk.Frame(circle_frame)
-        color_frame.grid(row=0, column=1, columnspan=3, pady=3, sticky="w")
-        for i in range(4):
-            ttk.Label(color_frame, text=f"{i + 1}").pack(
-                side="left", padx=(0 if i == 0 else 8, 2)
-            )
-            var = tk.StringVar(value=self.slot_color_names[i])
-            self.color_vars.append(var)
-            box = ttk.Combobox(
-                color_frame, textvariable=var, state="readonly",
-                values=list(COLOR_PRESETS.keys()), width=3,
-            )
-            box.pack(side="left")
-            box.bind("<<ComboboxSelected>>", lambda e, idx=i: self._preset_color_changed(idx))
-            self.color_boxes.append(box)
-        ttk.Button(
-            color_frame, text="恢复默认配色", command=self._reset_slot_colors
-        ).pack(side="left", padx=(10, 0))
-
-        ttk.Label(circle_frame, text="标志大小").grid(
-            row=1, column=0, padx=(0, 6), pady=3, sticky="w"
-        )
-        self.scale_var = tk.DoubleVar(value=1.0)
-        self.scale_slider = ttk.Scale(
-            circle_frame, from_=0.50, to=2.50, variable=self.scale_var,
-            orient="horizontal", command=self._scale_changed,
-        )
-        self.scale_slider.grid(row=1, column=1, pady=3, sticky="ew")
-        self.scale_text = ttk.Label(circle_frame, text="100%")
-        self.scale_text.grid(row=1, column=2, padx=(6, 0), pady=3, sticky="w")
-
-        ttk.Label(circle_frame, text="标志间距").grid(
-            row=2, column=0, padx=(0, 6), pady=3, sticky="w"
-        )
-        self.spacing_var = tk.DoubleVar(value=1.0)
-        self.spacing_slider = ttk.Scale(
-            circle_frame, from_=0.50, to=2.00, variable=self.spacing_var,
-            orient="horizontal", command=self._spacing_changed,
-        )
-        self.spacing_slider.grid(row=2, column=1, pady=3, sticky="ew")
-        self.spacing_text = ttk.Label(circle_frame, text="100%")
-        self.spacing_text.grid(row=2, column=2, padx=(6, 0), pady=3, sticky="w")
-
-        ttk.Label(circle_frame, text="标志不透明度").grid(
-            row=3, column=0, padx=(0, 6), pady=3, sticky="w"
-        )
-        self.marker_opacity_var = tk.DoubleVar(value=1.0)
-        self.marker_opacity_slider = ttk.Scale(
-            circle_frame, from_=0.20, to=1.00, variable=self.marker_opacity_var,
-            orient="horizontal", command=self._marker_opacity_changed,
-        )
-        self.marker_opacity_slider.grid(row=3, column=1, pady=3, sticky="ew")
-        self.marker_opacity_text = ttk.Label(circle_frame, text="100%")
-        self.marker_opacity_text.grid(row=3, column=2, padx=(6, 0), pady=3, sticky="w")
-
-        ttk.Label(circle_frame, text="背景不透明度").grid(
-            row=4, column=0, padx=(0, 6), pady=3, sticky="w"
-        )
-        self.background_opacity_var = tk.DoubleVar(value=0.62)
-        self.background_opacity_slider = ttk.Scale(
-            circle_frame, from_=0.0, to=1.00, variable=self.background_opacity_var,
-            orient="horizontal", command=self._background_opacity_changed,
-        )
-        self.background_opacity_slider.grid(row=4, column=1, pady=3, sticky="ew")
-        self.background_opacity_text = ttk.Label(circle_frame, text="62%")
-        self.background_opacity_text.grid(row=4, column=2, padx=(6, 0), pady=3, sticky="w")
-
-        self.show_numbers_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(
-            circle_frame, text="显示槽位编号", variable=self.show_numbers_var,
-            command=self._show_numbers_changed,
-        ).grid(row=5, column=0, pady=4, sticky="w")
-
-        self.flash_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(
-            circle_frame, text="CD 转好时整圆高亮", variable=self.flash_var,
-            command=self._notify_changed,
-        ).grid(row=6, column=0, pady=4, sticky="w")
-
-        ttk.Label(circle_frame, text="不可用状态").grid(
-            row=6, column=1, padx=(4, 4), pady=4, sticky="e"
-        )
-        self.unavailable_mode_var = tk.StringVar(value="暗色显示")
-        self.unavailable_box = ttk.Combobox(
-            circle_frame, textvariable=self.unavailable_mode_var, state="readonly",
-            values=list(Overlay.UNAVAILABLE_MODES), width=9,
-        )
-        self.unavailable_box.grid(row=6, column=2, columnspan=2, pady=4, sticky="w")
-        self.unavailable_box.bind(
-            "<<ComboboxSelected>>", lambda e: self._unavailable_mode_changed()
-        )
-
-        # -------- 板块二：角色头像样式 --------
-        avatar_frame = ttk.LabelFrame(
-            boards, text="角色头像样式（FF14 式 CD 遮罩）", padding=8,
-        )
-        avatar_frame.grid(row=0, column=1, sticky="nsew", padx=(4, 0))
+        avatar_frame = ttk.LabelFrame(style_tab, text="角色头像（手动配置）", padding=10)
+        avatar_frame.grid(row=0, column=0, sticky="ew", padx=4, pady=(0, 10))
         avatar_frame.columnconfigure(1, weight=1)
 
         ttk.Button(
             avatar_frame, text="抓取头像", command=self._capture_avatars
-        ).grid(row=0, column=0, pady=3, sticky="w")
+        ).grid(row=0, column=0, pady=6, sticky="w")
         ttk.Button(
-            avatar_frame, text="清除头像", command=self._clear_avatars
-        ).grid(row=0, column=1, padx=8, pady=3, sticky="w")
+            avatar_frame, text="恢复默认样式", command=self._reset_to_default_style
+        ).grid(row=0, column=1, padx=10, pady=6, sticky="w")
         ttk.Label(
             avatar_frame,
-            text="进入角色界面后点击右下角切换视图，之后再点击抓取",
+            text="默认样式为实心圆（固定格式，配色与动画不可更改）。\n"
+            "点击“抓取头像”后自动切换为角色头像样式显示；\n"
+            "“恢复默认样式”清除头像并回到实心圆。\n\n"
+            "抓取步骤：\n"
+            "1) 游戏内进入角色界面；\n"
+            "2) 点击界面右下角切换视图（显示 4 个头像）；\n"
+            "3) 点击“抓取头像”（或直接双击 HUD 悬浮窗）。\n"
+            "头像按圆形裁剪、随分辨率自动缩放。",
             foreground="#666666",
-            wraplength=190,
-        ).grid(row=1, column=0, columnspan=3, pady=(6, 0), sticky="w")
+            wraplength=360,
+        ).grid(row=1, column=0, columnspan=3, pady=(4, 2), sticky="w")
 
         ttk.Label(
-            hud_tab,
-            text="提示：左键拖拽移动 HUD；Ctrl+滚轮调整大小；双击抓取游戏头像。",
-            foreground="#666666",
-        ).grid(row=2, column=0, columnspan=4, pady=(4, 0), sticky="w")
+            style_tab,
+            text="交互提示：左键按住 HUD 拖动位置；Ctrl+滚轮调整大小；双击悬浮窗抓取头像。",
+            foreground="#888888",
+        ).grid(row=2, column=0, pady=(14, 0), sticky="w")
 
-        hud_tab.columnconfigure(0, weight=1)
+        # ================= 外观页 =================
+        common = ttk.LabelFrame(looks_tab, text="通用设置", padding=10)
+        common.grid(row=0, column=0, sticky="ew", padx=4, pady=(0, 10))
+        common.columnconfigure(1, weight=1)
+        common.columnconfigure(4, weight=1)
 
-        # -------- Notify tab --------
-        self.sound_var = tk.BooleanVar(value=False)
+        ttk.Label(common, text="标志大小").grid(
+            row=0, column=0, padx=(0, 6), pady=3, sticky="w"
+        )
+        self.scale_var = tk.DoubleVar(value=1.0)
+        self.scale_slider = ttk.Scale(
+            common, from_=0.50, to=2.50, variable=self.scale_var,
+            orient="horizontal", command=self._scale_changed,
+        )
+        self.scale_slider.grid(row=0, column=1, pady=3, sticky="ew")
+        self.scale_text = ttk.Label(common, text="100%")
+        self.scale_text.grid(row=0, column=2, padx=(6, 0), pady=3, sticky="w")
+
+        ttk.Label(common, text="标志间距").grid(
+            row=0, column=3, padx=(12, 6), pady=3, sticky="w"
+        )
+        self.spacing_var = tk.DoubleVar(value=1.0)
+        self.spacing_slider = ttk.Scale(
+            common, from_=0.50, to=2.00, variable=self.spacing_var,
+            orient="horizontal", command=self._spacing_changed,
+        )
+        self.spacing_slider.grid(row=0, column=4, pady=3, sticky="ew")
+        self.spacing_text = ttk.Label(common, text="100%")
+        self.spacing_text.grid(row=0, column=5, padx=(6, 0), pady=3, sticky="w")
+
+        ttk.Label(common, text="标志不透明度").grid(
+            row=1, column=0, padx=(0, 6), pady=3, sticky="w"
+        )
+        self.marker_opacity_var = tk.DoubleVar(value=1.0)
+        self.marker_opacity_slider = ttk.Scale(
+            common, from_=0.20, to=1.00, variable=self.marker_opacity_var,
+            orient="horizontal", command=self._marker_opacity_changed,
+        )
+        self.marker_opacity_slider.grid(row=1, column=1, pady=3, sticky="ew")
+        self.marker_opacity_text = ttk.Label(common, text="100%")
+        self.marker_opacity_text.grid(row=1, column=2, padx=(6, 0), pady=3, sticky="w")
+
+        self.show_countdown_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(
-            notify_tab, text="提示音", variable=self.sound_var,
-            command=self._notify_changed,
-        ).grid(row=0, column=0, padx=4, pady=12, sticky="w")
+            common, text="CD 显示预计秒数", variable=self.show_countdown_var,
+            command=self._show_countdown_changed,
+        ).grid(row=1, column=3, columnspan=2, padx=(12, 0), pady=3, sticky="w")
 
-        self.pitch_by_slot_var = tk.BooleanVar(value=True)
-        self.pitch_check = ttk.Checkbutton(
-            notify_tab, text="不同槽位不同音高", variable=self.pitch_by_slot_var,
-            command=self._settings_changed,
+        ttk.Label(common, text="不可用状态").grid(
+            row=2, column=0, padx=(0, 6), pady=(6, 3), sticky="w"
         )
-        self.pitch_check.grid(row=1, column=0, padx=4, pady=12, sticky="w")
-
-        self.silent_first_var = tk.BooleanVar(value=True)
-        self.silent_first_check = ttk.Checkbutton(
-            notify_tab, text="首次 READY 静默", variable=self.silent_first_var,
-            command=self._settings_changed,
+        self.unavailable_mode_var = tk.StringVar(value="暗色显示")
+        self.unavailable_box = ttk.Combobox(
+            common, textvariable=self.unavailable_mode_var, state="readonly",
+            values=list(Overlay.UNAVAILABLE_MODES), width=9,
         )
-        self.silent_first_check.grid(row=1, column=1, padx=24, pady=12, sticky="w")
+        self.unavailable_box.grid(row=2, column=1, pady=(6, 3), sticky="w")
+        self.unavailable_box.bind(
+            "<<ComboboxSelected>>", lambda e: self._unavailable_mode_changed()
+        )
 
-        ttk.Label(
-            notify_tab,
-            text="整圆高亮仅是 READY 后的视觉提示；不会参与 READY 判定。",
-        ).grid(row=2, column=0, columnspan=3, padx=4, pady=(20, 0), sticky="w")
+        tool_frame = ttk.LabelFrame(looks_tab, text="工具", padding=10)
+        tool_frame.grid(row=1, column=0, sticky="ew", padx=4, pady=(0, 10))
+        tool_frame.columnconfigure(1, weight=1)
 
-        # -------- Advanced tab --------
         self.show_debug_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(
-            advanced_tab, text="显示调试信息", variable=self.show_debug_var,
+            tool_frame, text="显示调试信息", variable=self.show_debug_var,
             command=self._toggle_debug,
-        ).grid(row=0, column=0, pady=10, sticky="w")
-
+        ).grid(row=0, column=0, pady=4, sticky="w")
         ttk.Button(
-            advanced_tab, text="恢复全部默认设置", command=self._reset_all_settings
-        ).grid(row=1, column=0, pady=10, sticky="w")
+            tool_frame, text="恢复全部默认设置", command=self._reset_all_settings
+        ).grid(row=0, column=1, padx=(16, 0), pady=4, sticky="w")
+        ttk.Button(
+            tool_frame, text="预览 HUD", command=self.preview_hud
+        ).grid(row=0, column=2, padx=(16, 0), pady=4, sticky="w")
 
-        support_text = (
-            "背景独立透明：可用"
-            if self.overlay.transparency_supported
-            else "背景独立透明：当前 Tk 环境不支持，已回退到旧 HUD 绘制方式"
-        )
-        ttk.Label(advanced_tab, text=support_text).grid(
-            row=2, column=0, pady=(18, 6), sticky="w"
-        )
+        about_frame = ttk.LabelFrame(looks_tab, text="关于", padding=10)
+        about_frame.grid(row=2, column=0, sticky="ew", padx=4)
+        about_frame.columnconfigure(1, weight=1)
+
         ttk.Label(
-            advanced_tab,
-            text="alpha5：修正连携条存在性 ROI，明确排除脱战仍存在的 HP 条。",
-        ).grid(row=3, column=0, pady=6, sticky="w")
-
-        # -------- HUD visibility options --------
-        self.hide_hud_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(
-            advanced_tab,
-            text="隐藏 HUD（保留检测与提示音，仅隐藏悬浮窗）",
-            variable=self.hide_hud_var,
-            command=self._settings_changed,
-        ).grid(row=4, column=0, columnspan=3, pady=(14, 2), sticky="w")
-
-        self.show_in_combat_only_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(
-            advanced_tab,
-            text="仅在战斗中显示 HUD（战斗检测控制显隐）",
-            variable=self.show_in_combat_only_var,
-            command=self._settings_changed,
-        ).grid(row=5, column=0, columnspan=3, pady=(10, 2), sticky="w")
-        ttk.Label(
-            advanced_tab,
-            text="取消勾选后，只要游戏在前台就始终显示 HUD。",
+            about_frame,
+            text="EndfieldComboHUD v1.01\n"
+            "《明日方舟：终末地》连携技状态 HUD。\n"
+            "原理：Win32 GDI 屏幕识别（仅截取左下 HUD 小区域），\n"
+            "不读取游戏内存、不注入进程、不修改游戏文件。\n"
+            "已适配 3840×2160 / 2560×1440 / 1920×1080（16:9）。",
             foreground="#666666",
-        ).grid(row=6, column=0, columnspan=4, pady=(2, 0), sticky="w")
+        ).grid(row=0, column=0, pady=4, sticky="w")
 
     def _apply_saved_settings(self):
         s = self.settings
@@ -3212,14 +3116,15 @@ class App:
         sig = s.get("monitor")
         chosen = None
         if isinstance(sig, dict):
-            for i, m in enumerate(self.monitors):
+            for i, (lab, m) in enumerate(self.mon_options):
                 if self._monitor_signature(m) == sig:
                     chosen = i
                     break
         if chosen is None:
             chosen = max(
-                range(len(self.monitors)),
-                key=lambda i: self.monitors[i]["width"] * self.monitors[i]["height"]
+                range(len(self.mon_options)),
+                key=lambda i: self.mon_options[i][1]["width"]
+                * self.mon_options[i][1]["height"]
             )
         self.mon_box.current(chosen)
 
@@ -3248,49 +3153,21 @@ class App:
 
         self.scale_var.set(max(0.50, min(2.50, float(s.get("hud_scale", 1.0)))))
         self.spacing_var.set(max(0.50, min(2.00, float(s.get("hud_spacing", 1.0)))))
+        self.marker_opacity_var.set(
+            max(0.20, min(1.0, float(s.get("marker_opacity", 1.0))))
+        )
 
-        # v1.x had one alpha for the whole window.  On first v2 launch keep
-        # that value for the black background, while markers default to 100%.
-        old_alpha = float(s.get("hud_opacity", 0.62))
-        marker_alpha = float(s.get("marker_opacity", 1.0))
-        background_alpha = float(s.get("background_opacity", old_alpha))
-        self.marker_opacity_var.set(max(0.20, min(1.0, marker_alpha)))
-        self.background_opacity_var.set(max(0.0, min(1.0, background_alpha)))
-
-        self.show_numbers_var.set(bool(s.get("show_numbers", False)))
         self.show_countdown_var.set(bool(s.get("show_countdown", True)))
         unavailable = s.get("unavailable_mode", "暗色显示")
         if unavailable not in Overlay.UNAVAILABLE_MODES:
             unavailable = "暗色显示"
         self.unavailable_mode_var.set(unavailable)
 
-        names = s.get("slot_color_names")
-        if isinstance(names, list) and len(names) == 4:
-            cleaned = []
-            for i, name in enumerate(names):
-                cleaned.append(
-                    name if name in COLOR_PRESETS else DEFAULT_SLOT_COLOR_NAMES[i]
-                )
-            self.slot_color_names = cleaned
-        else:
-            old_colors = s.get("slot_colors")
-            matched = []
-            reverse = {v.upper(): k for k, v in COLOR_PRESETS.items()}
-            if isinstance(old_colors, list) and len(old_colors) == 4:
-                for i, c in enumerate(old_colors):
-                    matched.append(
-                        reverse.get(str(c).upper(), DEFAULT_SLOT_COLOR_NAMES[i])
-                    )
-                self.slot_color_names = matched
+        # 默认样式固定配色，不可更改。
+        self.slot_colors = [
+            COLOR_PRESETS[name] for name in DEFAULT_SLOT_COLOR_NAMES
+        ]
 
-        self.slot_colors = [COLOR_PRESETS[name] for name in self.slot_color_names]
-        for i, var in enumerate(self.color_vars):
-            var.set(self.slot_color_names[i])
-
-        self.sound_var.set(bool(s.get("sound", False)))
-        self.flash_var.set(bool(s.get("flash", False)))
-        self.pitch_by_slot_var.set(bool(s.get("pitch_by_slot", True)))
-        self.silent_first_var.set(bool(s.get("silent_first", True)))
         self.show_in_combat_only_var.set(
             bool(s.get("show_in_combat_only", True))
         )
@@ -3319,12 +3196,12 @@ class App:
         self.overlay.set_scale(self.scale_var.get())
         self.overlay.set_spacing(self.spacing_var.get())
         self.overlay.set_marker_opacity(self.marker_opacity_var.get())
-        self.overlay.set_background_opacity(self.background_opacity_var.get())
-        self.overlay.set_show_numbers(self.show_numbers_var.get())
+        # HUD 背景固定透明、默认样式固定显示槽位编号。
+        self.overlay.set_background_opacity(0.0)
+        self.overlay.set_show_numbers(True)
         self.overlay.set_show_countdown(self.show_countdown_var.get())
         self.overlay.set_unavailable_mode(self.unavailable_mode_var.get())
         self.overlay.set_slot_colors(self.slot_colors)
-        self.overlay.set_flash_enabled(self.flash_var.get())
         self.overlay.set_position(
             self.position_var.get(), custom_rel=self.overlay.custom_rel
         )
@@ -3332,26 +3209,7 @@ class App:
         self.scale_text.config(text=f"{int(self.scale_var.get() * 100)}%")
         self.spacing_text.config(text=f"{int(self.spacing_var.get() * 100)}%")
         self.marker_opacity_text.config(text=f"{int(self.marker_opacity_var.get() * 100)}%")
-        self.background_opacity_text.config(text=f"{int(self.background_opacity_var.get() * 100)}%")
         self._toggle_debug()
-        self._refresh_notify_controls()
-
-    def _preset_color_changed(self, idx):
-        name = self.color_vars[idx].get()
-        if name not in COLOR_PRESETS:
-            return
-        self.slot_color_names[idx] = name
-        self.slot_colors[idx] = COLOR_PRESETS[name]
-        self.overlay.set_slot_colors(self.slot_colors)
-        self._save_settings()
-
-    def _reset_slot_colors(self):
-        self.slot_color_names = list(DEFAULT_SLOT_COLOR_NAMES)
-        self.slot_colors = [COLOR_PRESETS[name] for name in self.slot_color_names]
-        for i, var in enumerate(self.color_vars):
-            var.set(self.slot_color_names[i])
-        self.overlay.set_slot_colors(self.slot_colors)
-        self._save_settings()
 
     def _settings_changed(self):
         self._save_settings()
@@ -3374,16 +3232,6 @@ class App:
         self.overlay.set_marker_opacity(v)
         self._save_settings()
 
-    def _background_opacity_changed(self, value=None):
-        v = float(self.background_opacity_var.get())
-        self.background_opacity_text.config(text=f"{int(v * 100)}%")
-        self.overlay.set_background_opacity(v)
-        self._save_settings()
-
-    def _show_numbers_changed(self):
-        self.overlay.set_show_numbers(self.show_numbers_var.get())
-        self._save_settings()
-
     def _show_countdown_changed(self):
         self.overlay.set_show_countdown(self.show_countdown_var.get())
         self._save_settings()
@@ -3394,26 +3242,6 @@ class App:
 
     def _hud_style_value(self):
         return HUD_STYLE_NAMES.get(self.hud_style_var.get(), HUD_STYLE_CIRCLE)
-
-    def _hud_style_changed(self):
-        self.overlay.set_style(self._hud_style_value())
-        self._save_settings()
-
-    def _notify_changed(self):
-        self.overlay.set_flash_enabled(self.flash_var.get())
-        self._refresh_notify_controls()
-        self._save_settings()
-
-    def _refresh_notify_controls(self):
-        if self.sound_var.get():
-            self.pitch_check.state(["!disabled"])
-        else:
-            self.pitch_check.state(["disabled"])
-
-        if self.sound_var.get() or self.flash_var.get():
-            self.silent_first_check.state(["!disabled"])
-        else:
-            self.silent_first_check.state(["disabled"])
 
     def _toggle_debug(self):
         if self.show_debug_var.get():
@@ -3429,8 +3257,9 @@ class App:
 
         d = self._defaults()
         chosen = max(
-            range(len(self.monitors)),
-            key=lambda i: self.monitors[i]["width"] * self.monitors[i]["height"]
+            range(len(self.mon_options)),
+            key=lambda i: self.mon_options[i][1]["width"]
+            * self.mon_options[i][1]["height"]
         )
         self.mon_box.current(chosen)
         for v in self.slot_vars:
@@ -3442,20 +3271,12 @@ class App:
         self.scale_var.set(d["hud_scale"])
         self.spacing_var.set(d["hud_spacing"])
         self.marker_opacity_var.set(d["marker_opacity"])
-        self.background_opacity_var.set(d["background_opacity"])
-        self.show_numbers_var.set(d["show_numbers"])
         self.show_countdown_var.set(d["show_countdown"])
         self.unavailable_mode_var.set(d["unavailable_mode"])
 
-        self.slot_color_names = list(DEFAULT_SLOT_COLOR_NAMES)
-        self.slot_colors = [COLOR_PRESETS[name] for name in self.slot_color_names]
-        for i, var in enumerate(self.color_vars):
-            var.set(self.slot_color_names[i])
-
-        self.sound_var.set(False)
-        self.flash_var.set(True)
-        self.pitch_by_slot_var.set(True)
-        self.silent_first_var.set(True)
+        self.slot_colors = [
+            COLOR_PRESETS[name] for name in DEFAULT_SLOT_COLOR_NAMES
+        ]
         self.show_in_combat_only_var.set(True)
         self.hide_hud_var.set(False)
         self.hud_style_var.set(HUD_STYLE_LABELS[HUD_STYLE_CIRCLE])
@@ -3467,19 +3288,16 @@ class App:
         self.overlay.set_scale(1.0)
         self.overlay.set_spacing(1.0)
         self.overlay.set_marker_opacity(1.0)
-        self.overlay.set_background_opacity(0.62)
-        self.overlay.set_show_numbers(False)
+        self.overlay.set_background_opacity(0.0)
+        self.overlay.set_show_numbers(True)
         self.overlay.set_show_countdown(True)
         self.overlay.set_unavailable_mode("暗色显示")
         self.overlay.set_slot_colors(self.slot_colors)
-        self.overlay.set_flash_enabled(False)
 
         self.scale_text.config(text="100%")
         self.spacing_text.config(text="100%")
         self.marker_opacity_text.config(text="100%")
-        self.background_opacity_text.config(text="62%")
         self._toggle_debug()
-        self._refresh_notify_controls()
         self._save_settings()
 
     def _on_hud_drag_end(self, custom_rel):
@@ -3563,7 +3381,7 @@ class App:
         if not self._ensure_game_foreground():
             messagebox.showinfo(
                 "提示",
-                "未找到可见的《终末地》游戏窗口。\n"
+                "未找到可见的游戏窗口。\n"
                 "请先打开游戏并显示头像界面（主界面/编队界面），"
                 "再抓取头像。",
             )
@@ -3624,6 +3442,10 @@ class App:
             count = sum(1 for p in photos if p is not None)
             self.status.set(f"头像抓取完成：{count}/4 个槽位")
             if count:
+                # 抓取成功自动切换为角色头像样式（无需手动选择样式）。
+                self.hud_style_var.set(HUD_STYLE_LABELS[HUD_STYLE_AVATAR])
+                self.overlay.set_style(HUD_STYLE_AVATAR)
+                self._save_settings()
                 self._show_avatar_preview(photos)
         except Exception:
             self.status.set("头像抓取失败，请重试")
@@ -3646,6 +3468,14 @@ class App:
                 pass
         self.overlay.clear_avatars()
         self.status.set("已清除头像")
+
+    def _reset_to_default_style(self):
+        """恢复默认样式：清除头像并切回实心圆固定格式。"""
+        self._clear_avatars()
+        self.hud_style_var.set(HUD_STYLE_LABELS[HUD_STYLE_CIRCLE])
+        self.overlay.set_style(HUD_STYLE_CIRCLE)
+        self._save_settings()
+        self.status.set("已恢复默认样式")
 
     def _show_avatar_preview(self, photos):
         """抓取后放大预览 4 个头像，方便判断是否对准（无需切回游戏）。"""
@@ -3708,8 +3538,13 @@ class App:
     # ---------------- Helpers ----------------
 
     def monitor(self):
-        idx = self.mon_box.current()
-        return self.monitors[idx if idx >= 0 else 0]
+        label = self.mon_var.get()
+        for lab, m in self.mon_options:
+            if lab == label:
+                return m
+        if self.monitors:
+            return self.monitors[0]
+        return {"left": 0, "top": 0, "width": 1920, "height": 1080}
 
     def enabled(self):
         return [bool(v.get()) for v in self.slot_vars]
@@ -3739,7 +3574,7 @@ class App:
         if not self.running:
             return
 
-        # “隐藏 HUD”总开关：强制不显示悬浮窗，但检测与提示音照常。
+        # “隐藏 HUD”总开关：强制不显示悬浮窗，但检测照常。
         if self.hide_hud_var.get():
             self.overlay.hide()
             self.status.set("监测中 | HUD 已隐藏")
@@ -3753,13 +3588,13 @@ class App:
                 and not self.combat_hud_present
             ):
                 self.overlay.hide()
-                self.status.set("监测中 | 等待持续技力条")
+                self.status.set("监测中 | 等待进入战斗")
             else:
                 self.overlay.show()
                 self.status.set(self._monitoring_status_text())
         else:
             self.overlay.hide()
-            self.status.set("等待终末地前台")
+            self.status.set("等待游戏前台")
 
     # ---------------- Run control ----------------
 
@@ -3803,12 +3638,12 @@ class App:
 
         self.overlay.set_enabled(enabled)
         self.overlay.set_slot_colors(self.slot_colors)
-        self.overlay.set_flash_enabled(self.flash_var.get())
         self.overlay.set_scale(self.scale_var.get())
         self.overlay.set_spacing(self.spacing_var.get())
         self.overlay.set_marker_opacity(self.marker_opacity_var.get())
-        self.overlay.set_background_opacity(self.background_opacity_var.get())
-        self.overlay.set_show_numbers(self.show_numbers_var.get())
+        # HUD 背景固定透明、默认样式固定显示槽位编号。
+        self.overlay.set_background_opacity(0.0)
+        self.overlay.set_show_numbers(True)
         self.overlay.set_show_countdown(self.show_countdown_var.get())
         self.overlay.set_unavailable_mode(self.unavailable_mode_var.get())
         self.overlay.set_style(self._hud_style_value())
@@ -3824,7 +3659,8 @@ class App:
         self.status.set(self._monitoring_status_text())
         self._sync_overlay_visibility()
 
-        silent_first = bool(self.silent_first_var.get())
+        # 所有提示功能已移除，首次 READY 固定静默。
+        silent_first = True
         controller_mode = (
             self.input_layout_var.get() == INPUT_LAYOUT_CONTROLLER
         )
@@ -3856,12 +3692,12 @@ class App:
 
         self.overlay.set_enabled(enabled)
         self.overlay.set_slot_colors(self.slot_colors)
-        self.overlay.set_flash_enabled(self.flash_var.get())
         self.overlay.set_scale(self.scale_var.get())
         self.overlay.set_spacing(self.spacing_var.get())
         self.overlay.set_marker_opacity(self.marker_opacity_var.get())
-        self.overlay.set_background_opacity(self.background_opacity_var.get())
-        self.overlay.set_show_numbers(self.show_numbers_var.get())
+        # HUD 背景固定透明、默认样式固定显示槽位编号。
+        self.overlay.set_background_opacity(0.0)
+        self.overlay.set_show_numbers(True)
         self.overlay.set_show_countdown(self.show_countdown_var.get())
         self.overlay.set_unavailable_mode(self.unavailable_mode_var.get())
         self.overlay.set_style(self._hud_style_value())
@@ -3881,7 +3717,7 @@ class App:
         # 1: 15%, unknown seconds
         # 2: 42%, learned 12s -> ~7s remaining
         # 3: 76%, learned 12s -> ~3s remaining
-        # 4: READY + whole-circle pulse
+        # 4: READY
         self.overlay.reset_runtime_progress()
         preview_progress = [0.15, 0.42, 0.76, 1.0]
         preview_remaining = [None, 7.0, 3.0, 0.0]
@@ -3899,13 +3735,6 @@ class App:
                     active=(i != 3),
                 )
 
-        if self.flash_var.get() and enabled[3]:
-            self.overlay.flash(3)
-
-        if self.sound_var.get():
-            slot = next((i for i, x in enumerate(enabled) if x), 0)
-            self._play_sound(slot)
-
         def reset():
             if not self.running and not self.overlay.adjust_mode:
                 for i in range(4):
@@ -3914,23 +3743,6 @@ class App:
                 self.overlay.hide()
                 self.preview_until = 0.0
         self.root.after(2400, reset)
-
-    def _play_sound(self, slot):
-        if not self.sound_var.get():
-            return
-        try:
-            import winsound
-            if self.pitch_by_slot_var.get():
-                freqs = [660, 780, 900, 1020]
-                freq = freqs[slot]
-            else:
-                freq = 880
-            threading.Thread(
-                target=lambda: winsound.Beep(freq, 85),
-                daemon=True,
-            ).start()
-        except Exception:
-            pass
 
     def _capture_loop(self, mon, enabled, silent_first, controller_mode=False):
         cap = None
@@ -4689,12 +4501,9 @@ class App:
                     )
 
                 elif kind == "alert":
-                    _, idx = ev
-                    # UI-only choice: state has already changed to READY.
-                    if self.flash_var.get():
-                        self.overlay.flash(idx)
-                    if self.sound_var.get():
-                        self._play_sound(idx)
+                    # 提示功能已全部移除：READY 事件仅推进状态，不触发
+                    # 视觉高亮或提示音。
+                    pass
 
                 elif kind == "debug":
                     _, rows = ev
@@ -4807,8 +4616,8 @@ def main():
         temp.withdraw()
         try:
             messagebox.showinfo(
-                "终末地连携 CD HUD",
-                "插件已经在运行。\n\n"
+                "EndfieldComboHUD",
+                "程序已经在运行。\n\n"
                 "请查看系统托盘中的现有实例。"
             )
         finally:
