@@ -2984,7 +2984,8 @@ class App:
         self.position_var = tk.StringVar(value="中央偏下")
         # 内部样式状态：默认实心圆；点击“抓取头像”后自动切换为角色头像。
         self.hud_style_var = tk.StringVar(value="实心圆形")
-        # 默认样式（实心圆）为固定格式：固定配色、无高亮、始终显示干员编号。
+        # 默认样式（实心圆）为固定格式：固定配色、无高亮、不显示干员编号
+        # （编号会与 CD 预计秒数显示冲突）。
         self.slot_colors = [
             COLOR_PRESETS[name] for name in DEFAULT_SLOT_COLOR_NAMES
         ]
@@ -3196,9 +3197,9 @@ class App:
         self.overlay.set_scale(self.scale_var.get())
         self.overlay.set_spacing(self.spacing_var.get())
         self.overlay.set_marker_opacity(self.marker_opacity_var.get())
-        # HUD 背景固定透明、默认样式固定显示槽位编号。
+        # HUD 背景固定透明；不显示干员编号（避免与 CD 秒数显示冲突）。
         self.overlay.set_background_opacity(0.0)
-        self.overlay.set_show_numbers(True)
+        self.overlay.set_show_numbers(False)
         self.overlay.set_show_countdown(self.show_countdown_var.get())
         self.overlay.set_unavailable_mode(self.unavailable_mode_var.get())
         self.overlay.set_slot_colors(self.slot_colors)
@@ -3288,8 +3289,9 @@ class App:
         self.overlay.set_scale(1.0)
         self.overlay.set_spacing(1.0)
         self.overlay.set_marker_opacity(1.0)
+        # HUD 背景固定透明；不显示干员编号（避免与 CD 秒数显示冲突）。
         self.overlay.set_background_opacity(0.0)
-        self.overlay.set_show_numbers(True)
+        self.overlay.set_show_numbers(False)
         self.overlay.set_show_countdown(True)
         self.overlay.set_unavailable_mode("暗色显示")
         self.overlay.set_slot_colors(self.slot_colors)
@@ -3641,9 +3643,9 @@ class App:
         self.overlay.set_scale(self.scale_var.get())
         self.overlay.set_spacing(self.spacing_var.get())
         self.overlay.set_marker_opacity(self.marker_opacity_var.get())
-        # HUD 背景固定透明、默认样式固定显示槽位编号。
+        # HUD 背景固定透明；不显示干员编号（避免与 CD 秒数显示冲突）。
         self.overlay.set_background_opacity(0.0)
-        self.overlay.set_show_numbers(True)
+        self.overlay.set_show_numbers(False)
         self.overlay.set_show_countdown(self.show_countdown_var.get())
         self.overlay.set_unavailable_mode(self.unavailable_mode_var.get())
         self.overlay.set_style(self._hud_style_value())
@@ -3695,9 +3697,9 @@ class App:
         self.overlay.set_scale(self.scale_var.get())
         self.overlay.set_spacing(self.spacing_var.get())
         self.overlay.set_marker_opacity(self.marker_opacity_var.get())
-        # HUD 背景固定透明、默认样式固定显示槽位编号。
+        # HUD 背景固定透明；不显示干员编号（避免与 CD 秒数显示冲突）。
         self.overlay.set_background_opacity(0.0)
-        self.overlay.set_show_numbers(True)
+        self.overlay.set_show_numbers(False)
         self.overlay.set_show_countdown(self.show_countdown_var.get())
         self.overlay.set_unavailable_mode(self.unavailable_mode_var.get())
         self.overlay.set_style(self._hud_style_value())
